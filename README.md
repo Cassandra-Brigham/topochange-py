@@ -4,6 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22821119.svg)](https://doi.org/10.5281/zenodo.22821119)
 
 `topochange` quantifies spatially correlated uncertainty in lidar topographic change detection. It decomposes vertical differencing error into bias, correlated, and uncorrelated components with nested variogram models, then propagates that error structure over user-defined regions of interest. The outputs are a standard deviation for the mean change in any polygon, a per-pixel (heteroscedastic) σ map, or a volume change with its uncertainty.
 
