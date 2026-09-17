@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "topochange"
+version = "1.0.0"
+description = "Topographic change detection and uncertainty quantification using variogram-based methods"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Cassandra Brigham"}
+]
+keywords = [
+    "topography",
+    "DEM",
+    "uncertainty",
+    "variogram",
+    "geospatial",
+    "raster",
+    "point-cloud",
+    "change-detection"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "matplotlib",
+    "colormaps",
+    "rasterio",
+    "pyproj",
+    "geopandas",
+    "shapely",
+    "rioxarray",
+    "numba",
+    "requests",
+    "pyyaml",
+    # interactive stable-area maps: topochange.stable_area_analysis imports
+    # these at module level and __init__ imports that module, so a core
+    # install needs them.
+    "ipyleaflet",
+    "ipywidgets",
+]
+
+[project.optional-dependencies]
+interactive = [
+    # retained so `pip install topochange[interactive]` keeps working;
+    # these moved into the base dependencies in 1.0.0.
+    "ipyleaflet",
+    "ipywidgets",
+]
+pointcloud = [
+    "pdal",
+    "laspy",
+]
+heteroscedastic = [
+    # Spatially-varying (per-pixel) error modelling: the GAM σ model in
+    # topochange.heteroscedastic. Lidar point-cloud predictors additionally
+    # require the [pointcloud] extra (pdal, laspy).
+    "pygam",
+]
+alignment = [
+    "small_gicp",
+]
+data_access = [
+    "boto3",
+    # GDAL (osgeo) is also required but must be installed via conda or
+    # system packages — pip install GDAL is fragile and needs matching
+    # system libraries. Install with: conda install -c conda-forge gdal
+]
+converters = [
+    "xarray",
+]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-timeout",
+    "black",
+    "ruff",
+]
+all = [
+    "topochange[interactive,pointcloud,heteroscedastic,alignment,data_access,converters]",
+]
+
+[project.urls]
+Homepage = "https://github.com/Cassandra-Brigham/topochange-py"
+Documentation = "https://github.com/Cassandra-Brigham/topochange-py#readme"
+Repository = "https://github.com/Cassandra-Brigham/topochange-py"
+Issues = "https://github.com/Cassandra-Brigham/topochange-py/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+topochange = ["data/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# src: makes the package importable without an editable install;
+# tests: makes the shared helpers (skip_markers, conftest) importable as
+# bare modules, so `pytest` works from the repo root.
+pythonpath = ["src", "tests"]
+# Fail a hung test instead of stalling the run for hours. The whole suite
+# takes ~1 min without the pdal/small_gicp tests; no single test needs 10.
+# Requires pytest-timeout (in the [dev] extra); ignored if absent.
+timeout = 600

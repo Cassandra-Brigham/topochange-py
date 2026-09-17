@@ -1,0 +1,60 @@
+# Reproducible conda environment for topochange (all extras + test suite).
+#
+#   conda env create -f environment.yml
+#   conda activate topochange
+#   cd <repo root>                      # the folder with pyproject.toml
+#   pip install -e . --no-deps
+#   pytest                              # 960 tests should collect
+#
+# Everything compiled comes from conda-forge in ONE solve. Install the
+# package itself with --no-deps afterwards and never let pip touch
+# numpy/scipy/numba in this env — mixing pip and conda builds of the
+# compiled stack is what breaks PDAL/GDAL environments.
+name: topochange
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.12
+  # ---- core numerics (conda metadata reconciles the numba/numpy pair) ----
+  - numpy >=2.1,<2.5
+  - scipy >=1.14
+  - numba >=0.61
+  - pandas
+  - matplotlib
+  # ---- geospatial stack ----
+  - gdal                # osgeo bindings (terrain derivatives, data_access)
+  - rasterio
+  - pyproj
+  - shapely
+  - geopandas
+  - rioxarray           # pulls xarray (also used by [converters])
+  - xarray
+  # ---- point clouds ----
+  - python-pdal         # 'import pdal' — point-cloud I/O, DEM gridding
+  - laspy
+  # ---- per-pixel (heteroscedastic) sigma modelling ----
+  - pygam               # GAM sigma model ([heteroscedastic] extra)
+  # ---- data access ----
+  - boto3               # OpenTopography EPT downloads (notebook 3)
+  # ---- misc runtime ----
+  - requests
+  - pyyaml
+  # ---- notebooks ----
+  - ipyleaflet          # interactive stable-area maps
+  - ipywidgets
+  - jupyterlab
+  - ipykernel
+  # ---- testing ----
+  - pytest
+  - pytest-cov
+  - pytest-timeout   # fails hung tests instead of stalling the run
+  # ---- optional: uncomment if needed ----
+  # - opencv            # inpainting hole-fill path in pointcloud.py (lazy import)
+  # - gstools           # only for the standalone tests/validate_p1_coverage.py script
+  - pip
+  - pip:
+      - colormaps       # not on conda-forge
+      - small_gicp      # ICP/GICP registration ([alignment] extra; not on conda-forge)
+variables:
+  PYTHONUTF8: "1"       # avoids cp1252 write errors on Windows

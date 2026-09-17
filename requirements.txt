@@ -1,0 +1,44 @@
+# Core Scientific Computing
+numpy
+pandas
+scipy
+matplotlib
+colormaps  # Note: not on conda-forge, installed via pip
+
+# Geospatial/GIS Libraries
+# Note: In Colab, these are installed via pip after apt-get installs system libraries.
+# The notebook setup handles the apt dependencies automatically.
+rasterio
+pyproj
+geopandas
+shapely
+rioxarray
+
+# Performance Optimization
+numba
+
+# Web and Data Access
+requests
+
+# Interactive Jupyter Widgets (optional: pip install topochange[interactive])
+ipyleaflet
+ipywidgets
+
+# Configuration
+pyyaml
+
+# --- Optional dependencies ---
+# Point cloud I/O (pip install topochange[pointcloud]):
+#   pdal, laspy
+# Heteroscedastic (per-pixel) error modelling (pip install topochange[heteroscedastic]):
+#   pygam  (lidar predictors also need the [pointcloud] extra)
+# Point cloud alignment (pip install topochange[alignment]):
+#   small_gicp
+# Data download / OpenTopography (pip install topochange[data_access]):
+#   boto3, plus: conda install -c conda-forge gdal
+# Velocity model converters (pip install topochange[converters]):
+#   xarray
+# Raster terrain analysis (hillshade, slope, etc.):
+#   GDAL (osgeo) — install via: conda install -c conda-forge gdal
+# Hole-filling via inpainting:
+#   opencv-python (cv2) — install via: pip install opencv-python
