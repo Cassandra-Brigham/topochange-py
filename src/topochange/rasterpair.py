@@ -501,6 +501,11 @@ class RasterPair:
     # internal state
     _transformation_history: List[Dict[str, Any]] = field(default_factory=list)
     _raster1_transformed: Optional[Raster] = field(default=None, repr=False)
+    # Path of the difference raster most recently written by
+    # compute_difference(). plot_difference() reads this instead of
+    # recomputing, so plotting cannot silently overwrite the raster with a
+    # different set of differencing options.
+    _last_difference_path: Optional[str] = field(default=None, repr=False)
     
     def __post_init__(self):
         """Initialize internal state."""
@@ -1746,6 +1751,8 @@ class RasterPair:
                 'loaded_from_cache': True,
             }
 
+            self._last_difference_path = output_path
+
             return {
                 'difference_raster': diff_raster,
                 'difference_raster_path': output_path,
@@ -1869,6 +1876,8 @@ class RasterPair:
             'transformation_history': self._transformation_history,
         }
         
+        self._last_difference_path = output_path
+
         return {
             'difference_raster': diff_raster,
             'difference_raster_path': output_path,
@@ -3067,9 +3076,14 @@ class RasterPair:
         Parameters
         ----------
         pair : RasterPair, optional
-            RasterPair to compute difference from. If None, uses self.
+            RasterPair to (re)compute the difference from, using this method's
+            defaults. Pass this only when you want a fresh computation; it
+            overwrites the pair's difference raster on disk.
         diff_path : Path or str, optional
-            Path to pre-computed difference raster. Provide exactly one of 'pair' or 'diff_path'.
+            Path to an already-computed difference raster to plot.
+            Provide at most one of 'pair' or 'diff_path'. If neither is given,
+            the raster most recently written by ``compute_difference()`` on
+            this pair is used; if there is none, the difference is computed.
         overlay : Raster, optional
             Raster to display as grayscale overlay (e.g., hillshade)
         mask_overlay : bool, default=True
@@ -3098,9 +3112,19 @@ class RasterPair:
         """
         import matplotlib.pyplot as plt
 
-        # default to using self if neither pair nor diff_path provided
+        # Neither supplied: reuse the difference raster compute_difference()
+        # last wrote for this pair. Recomputing here would use *this* method's
+        # defaults (skip_epoch=False, bilinear) rather than the options the
+        # caller passed to compute_difference(), and would overwrite the file
+        # on disk -- so the reported statistics would no longer describe the
+        # raster every later step reads. Pass pair=<RasterPair> explicitly to
+        # force a recompute.
         if pair is None and diff_path is None:
-            pair = self
+            prev = getattr(self, "_last_difference_path", None)
+            if prev is not None and os.path.exists(prev):
+                diff_path = prev
+            else:
+                pair = self
 
         if (pair is None) == (diff_path is None):
             raise ValueError("Provide exactly one of 'pair' or 'diff_path'")
@@ -3161,5 +3185,7 @@ class RasterPair:
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(save_path, dpi=dpi, bbox_inches="tight", pad_inches=0)
+
+        return fig
 
         
