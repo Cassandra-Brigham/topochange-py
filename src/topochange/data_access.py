@@ -740,14 +740,27 @@ class OpenTopographyQuery:
             print("WARNING: Vertical CRSs differ between datasets")
         
         # print geoid info for user
+        #
+        # Three states, not two. Ellipsoidal heights have no geoid, so
+        # geoid_model=None is the correct answer for them rather than a gap.
+        # Warning there would invite set_*_geoid() on ellipsoidal data, which
+        # applies a geoid correction that must not exist (tens of metres).
         compare_geoid = self.compare_vertical_info.get('geoid_model')
         reference_geoid = self.reference_vertical_info.get('geoid_model')
+        compare_is_ortho = self.compare_vertical_info.get('is_orthometric')
+        reference_is_ortho = self.reference_vertical_info.get('is_orthometric')
+
         if compare_geoid:
             print(f"Compare Geoid: {compare_geoid}")
+        elif compare_is_ortho is False:
+            print("Compare vertical: ellipsoidal heights (no geoid applies)")
         else:
             print(f"WARNING: Compare vertical CRS: '{self.compare_vertical_crs}' - geoid not detected, use set_compare_geoid()")
+
         if reference_geoid:
             print(f"Reference Geoid: {reference_geoid}")
+        elif reference_is_ortho is False:
+            print("Reference vertical: ellipsoidal heights (no geoid applies)")
         else:
             print(f"WARNING: Reference vertical CRS: '{self.reference_vertical_crs}' - geoid not detected, use set_reference_geoid()")
         

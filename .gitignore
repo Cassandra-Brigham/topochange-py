@@ -50,3 +50,6 @@ ENV/
 .DS_Store
 
 _to_delete/
+
+# Workshop files
+CLASH/

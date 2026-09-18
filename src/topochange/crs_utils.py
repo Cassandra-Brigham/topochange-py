@@ -1,6 +1,6 @@
 """CRS conversion and transformation utilities."""
 from functools import lru_cache
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as _np
 from pyproj import CRS as _CRS
@@ -664,6 +664,85 @@ _NAVD88_GEOID_MODELS = frozenset({
     "geoid99", "geoid03", "geoid06", "geoid09",
     "geoid12a", "geoid12b", "geoid18",
 })
+
+
+def ellipsoidal_height_crs_from_horizontal(
+    horizontal_crs: Optional[Any],
+) -> Optional[_CRS]:
+    """
+    Derive the 1-D ellipsoidal-height vertical CRS matching a horizontal CRS.
+
+    "Ellipsoidal height" is not a CRS on its own: it is only meaningful
+    relative to a specific geodetic datum. This takes the datum from the
+    horizontal CRS, promotes it to its 3-D geographic form, and extracts the
+    height axis as a standalone vertical CRS -- so EPSG:32611 (WGS 84 / UTM
+    11N) yields WGS 84 ellipsoidal height, EPSG:6340 (NAD83(2011)) yields
+    NAD83(2011) ellipsoidal height, and so on.
+
+    Parameters
+    ----------
+    horizontal_crs : str, int, pyproj.CRS, or None
+        The horizontal CRS whose datum defines the ellipsoid.
+
+    Returns
+    -------
+    pyproj.CRS or None
+        A 1-D ellipsoidal-height vertical CRS, or None if it cannot be
+        derived.
+    """
+    if horizontal_crs is None:
+        return None
+    try:
+        h = _ensure_crs_obj(horizontal_crs)
+        if h is None:
+            return None
+        geodetic = h.geodetic_crs
+        if geodetic is None:
+            return None
+        return extract_ellipsoidal_height_as_vertical_crs(geodetic.to_3d())
+    except Exception:
+        return None
+
+
+def resolve_catalog_vertical(
+    metadata: Dict[str, Any],
+) -> Tuple[Optional[str], Optional[str], Optional[bool]]:
+    """
+    Resolve an OpenTopography catalog metadata dict to usable vertical CRS info.
+
+    ``vertical_datum_to_crs`` returns None for ellipsoidal datums, because no
+    1-D vertical CRS exists for "ellipsoidal" in the abstract. Consumers then
+    read that None as "unknown" and discard the one fact the catalog supplied.
+    This routes the ellipsoidal case through the horizontal CRS's datum
+    instead, so an ellipsoidal dataset resolves as positively ellipsoidal
+    rather than as undetermined.
+
+    Parameters
+    ----------
+    metadata : dict
+        As returned by ``OpenTopographyQuery.get_metadata_dict()``; reads the
+        ``is_orthometric``, ``vertical_datum``, ``geoid_model`` and
+        ``horizontal_crs`` keys.
+
+    Returns
+    -------
+    (vertical_crs_wkt, geoid_model, is_orthometric)
+        ``vertical_crs_wkt`` is WKT suitable for ``add_metadata(vertical_CRS=)``
+        or None; ``is_orthometric`` is True, False, or None if undetermined.
+    """
+    ortho = metadata.get("is_orthometric")
+    datum = metadata.get("vertical_datum")
+    geoid = metadata.get("geoid_model")
+    datum_lower = (datum or "").strip().lower()
+
+    if ortho is False or datum_lower in {"ellipsoidal", "ellipsoid"}:
+        vcrs = ellipsoidal_height_crs_from_horizontal(metadata.get("horizontal_crs"))
+        return (vcrs.to_wkt() if vcrs is not None else None), None, False
+
+    vcrs = vertical_datum_to_crs(datum, geoid)
+    if vcrs is not None:
+        return vcrs.to_wkt(), geoid, True
+    return None, geoid, ortho
 
 
 def vertical_datum_to_crs(

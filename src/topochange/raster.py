@@ -1008,9 +1008,10 @@ class Raster:
             try:
                 obj.is_orthometric = is_orthometric(obj.original_vertical_crs)
             except Exception:
-                obj.is_orthometric = False
+                obj.is_orthometric = None
         else:
-            obj.is_orthometric = False
+            # no vertical CRS means unknown, not ellipsoidal (see PointCloud.from_file)
+            obj.is_orthometric = None
 
         obj.bounds = bounds
         obj.transform = transform
@@ -1403,6 +1404,80 @@ class Raster:
                 )
             except Exception:
                 pass
+
+    def apply_catalog_metadata(
+        self,
+        metadata: Dict[str, Any],
+        *,
+        verbose: bool = False,
+    ) -> None:
+        """
+        Apply OpenTopography catalog metadata to this raster.
+
+        A LAS/GeoTIFF header often declares only the horizontal CRS, leaving
+        the vertical datum blank even when the OpenTopography catalog records
+        it. This applies the catalog's horizontal CRS, vertical datum, geoid
+        model and epoch in one step, so the vertical datum does not have to be
+        declared by hand.
+
+        Parameters
+        ----------
+        metadata : dict
+            As returned by ``OpenTopographyQuery.get_metadata_dict("compare")``
+            or ``...("reference")``.
+        verbose : bool, default False
+            Print what was applied.
+
+        Notes
+        -----
+        The catalog's ``is_orthometric`` flag is authoritative and is applied
+        even when no vertical CRS could be constructed from it.
+        """
+        import warnings
+
+        from .crs_utils import resolve_catalog_vertical
+        from .unit_utils import reconcile_vertical_unit
+
+        vertical_crs, geoid_model, ortho = resolve_catalog_vertical(metadata)
+
+        # The resolved vertical CRS states a datum, not a unit: the ellipsoidal
+        # one is derived from the horizontal CRS's datum and carries metres
+        # incidentally. add_metadata treats a new vertical CRS's unit as
+        # authoritative, so capture the header's declaration first.
+        header_unit = getattr(self, "vertical_unit", None)
+
+        self.add_metadata(
+            horizontal_CRS=metadata.get("horizontal_crs"),
+            vertical_CRS=vertical_crs,
+            geoid_model=geoid_model,
+            epoch=metadata.get("epoch"),
+        )
+
+        # the catalog flag survives even when vertical_crs is None
+        if ortho is not None:
+            self.is_orthometric = ortho
+
+        chosen_unit, unit_warning = reconcile_vertical_unit(
+            metadata.get("vertical_unit_info"), header_unit
+        )
+        if chosen_unit is not None:
+            self.vertical_unit = chosen_unit
+            self.vertical_units = chosen_unit.display_name
+        if unit_warning:
+            warnings.warn(unit_warning, UserWarning, stacklevel=2)
+
+        if verbose:
+            kind = (
+                "orthometric" if ortho else
+                "ellipsoidal" if ortho is False else
+                "undetermined"
+            )
+            print(
+                f"Applied catalog metadata: horizontal="
+                f"{metadata.get('horizontal_crs')}, vertical={kind}"
+                f"{f', geoid={geoid_model}' if geoid_model else ''}",
+                file=sys.stderr,
+            )
 
     def plot(self, *, ax=None, cmap="viridis", vmin=None, vmax=None, title=None, **imshow_kw):
         """

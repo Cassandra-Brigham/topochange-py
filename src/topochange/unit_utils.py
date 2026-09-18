@@ -215,6 +215,54 @@ RADIAN = _ANGULAR_UNITS["radian"]
 UNKNOWN_UNIT = UnitInfo("unknown", "unknown", "?", 1.0, "unknown", None)
 
 
+def reconcile_vertical_unit(catalog_unit, header_unit):
+    """
+    Decide the authoritative vertical unit from catalog and file-header evidence.
+
+    A vertical CRS states a datum, not a unit. The ellipsoidal-height CRS
+    derived from a horizontal CRS carries metres incidentally, so taking its
+    unit as authoritative would silently relabel a file recorded in US survey
+    feet. Order of evidence: an explicit catalog unit, then the file header's
+    own declaration, then nothing.
+
+    Parameters
+    ----------
+    catalog_unit : UnitInfo or None
+        Unit parsed from the catalog's vertical string, if it stated one.
+    header_unit : UnitInfo or None
+        Unit read from the file header before any CRS was applied.
+
+    Returns
+    -------
+    (chosen, warning)
+        ``chosen`` is the UnitInfo to use, or None if neither source knew.
+        ``warning`` is a message to surface, or None.
+    """
+    def _known(u):
+        return u is not None and getattr(u, "name", "unknown") != "unknown"
+
+    if _known(catalog_unit):
+        if _known(header_unit) and catalog_unit.name != header_unit.name:
+            return catalog_unit, (
+                f"Vertical unit disagreement: the catalog says "
+                f"{catalog_unit.display_name} but the file header declares "
+                f"{header_unit.display_name}. Using the catalog value. Verify "
+                f"against the actual Z range before differencing -- a "
+                f"metre/foot mix-up scales elevations by ~3.28."
+            )
+        return catalog_unit, None
+
+    if _known(header_unit):
+        return header_unit, None
+
+    return None, (
+        "Vertical unit could not be determined from either the catalog or the "
+        "file header. Set it explicitly before differencing; an undetected "
+        "metre/foot mismatch scales elevations by ~3.28 and will not raise."
+    )
+
+
+
 # unit Lookup Functions
 
 def lookup_unit(name: str) -> Optional[UnitInfo]:

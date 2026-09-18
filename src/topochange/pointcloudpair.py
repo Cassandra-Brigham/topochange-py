@@ -1168,6 +1168,21 @@ class PointCloudPair:
             not skip_vertical and
             'vertical_datum' in comparison['transformations_needed']
         )
+
+        # A vertical datum transform was flagged as needed, but the reference's
+        # vertical kind could not be determined. Proceeding would either crash
+        # downstream or silently transform against a guessed datum, so fail here
+        # with something the caller can act on.
+        if needs_vertical and target_vertical_kind is None:
+            raise ValueError(
+                "A vertical datum transformation is required, but the reference "
+                "point cloud's vertical CRS could not be determined (its header may not "
+                "declare one). Declare it before transforming -- e.g. "
+                "pc2.add_metadata(vertical_CRS=\"5703\", geoid_model=\"geoid12b\") "
+                "for orthometric heights, or vertical_CRS=\"4979\" for WGS84 "
+                "ellipsoidal heights -- or pass skip_vertical=True to difference "
+                "in the source vertical datum."
+            )
         needs_horizontal = (
             not skip_horizontal and
             'horizontal_crs' in comparison['transformations_needed']

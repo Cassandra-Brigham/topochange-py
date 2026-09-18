@@ -1,6 +1,6 @@
 # topochange test suite
 
-960 tests across 29 `test_*.py` modules, plus 2 standalone benchmark scripts
+1001 tests across 30 `test_*.py` modules, plus 2 standalone benchmark scripts
 (`validate_p0_grf.py`, `validate_p1_coverage.py` — `__main__`-driven, need
 external GRF benchmark data, not collected by pytest).
 
@@ -16,7 +16,7 @@ pytest --cov=topochange                   # with coverage
 Tests requiring optional dependencies skip automatically (gates in
 `skip_markers.py`): **pdal** (point-cloud I/O, DEM creation, integration
 workflows), **small_gicp** (registration), **GDAL/osgeo** (download resume).
-With none of those installed, ~860 tests still run; nothing errors or fails
+With none of those installed, 902 tests still run; nothing errors or fails
 from missing dependencies or missing data — synthetic LAZ fixtures are
 generated on the fly by `conftest.py` when pdal is available.
 

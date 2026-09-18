@@ -48,7 +48,7 @@ topochange/
 │   ├── data_access.py / pipeline_builder.py # OpenTopography API, PROJ pipelines
 │   ├── crs_*.py, geoid_utils.py, unit_utils.py, time_utils.py, velocity_model_*.py
 │   └── data/velocity_models_registry.yaml   # bundled crustal deformation model registry
-├── tests/                                   # pytest suite (960 tests, 29 modules + 2 validation scripts)
+├── tests/                                   # pytest suite (1001 tests, 30 modules + 2 validation scripts)
 ├── environment.yml                          # complete conda environment (all extras)
 ├── pyproject.toml / requirements.txt
 └── CITATION.cff
@@ -188,7 +188,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-Tests requiring optional dependencies (PDAL, small_gicp, GDAL) skip automatically when those aren't installed; ~860 of the 960 tests run without them. See `tests/README.md` for the layout.
+Tests requiring optional dependencies (PDAL, small_gicp, GDAL) skip automatically when those aren't installed; 902 of the 1001 tests run without them. See `tests/README.md` for the layout.
 
 ## Citation
 
